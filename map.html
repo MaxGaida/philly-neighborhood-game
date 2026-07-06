@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crowd Neighborhood Map — Philadelphia</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="map-page">
+  <header>
+    <a href="index.html" class="back-link">◂ Back to the game</a>
+    <h1>Philadelphia, as the crowd sees it</h1>
+    <p class="sub" id="stats">Loading votes…</p>
+  </header>
+
+  <div class="map-controls">
+    <div class="seg">
+      <button id="mode-winner" class="seg-btn active" type="button">Winner by corner</button>
+      <button id="mode-explore" class="seg-btn" type="button">Explore a neighborhood</button>
+    </div>
+    <div id="hood-wrap" class="hood-wrap" hidden>
+      <label for="hood-select">Show where people say&nbsp;</label>
+      <select id="hood-select"></select>
+      <span>&nbsp;is.</span>
+    </div>
+  </div>
+
+  <div id="map" class="map-full"></div>
+
+  <div id="legend" class="legend"></div>
+
+  <p id="empty" class="empty-msg" hidden>
+    No votes yet. <a href="index.html">Play the game</a> to start filling in the map.
+  </p>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="config.js"></script>
+  <script src="intersections.js"></script>
+  <script src="neighborhoods.js"></script>
+  <script src="map.js"></script>
+</body>
+</html>

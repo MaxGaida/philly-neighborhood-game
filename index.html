@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Name That Neighborhood — Philadelphia</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Name That Neighborhood</h1>
+    <p class="sub">What neighborhood is this Philadelphia corner in?</p>
+  </header>
+
+  <main>
+    <div id="corner-label" class="corner-label">Loading…</div>
+
+    <div id="map" aria-label="Map of the intersection"></div>
+
+    <form id="answer-form" autocomplete="off">
+      <div class="autocomplete">
+        <input id="answer" type="text" placeholder="Type a neighborhood name…"
+               aria-label="Neighborhood name" spellcheck="false" />
+        <ul id="suggestions" class="suggestions" hidden></ul>
+      </div>
+      <div class="buttons">
+        <button type="submit" id="submit-btn" class="primary">Submit</button>
+        <button type="button" id="dontknow-btn" class="ghost">Not sure</button>
+        <button type="button" id="skip-btn" class="ghost">Skip ▸</button>
+      </div>
+    </form>
+
+    <section id="results" class="results" hidden aria-live="polite">
+      <p class="results-lead">You said <strong id="your-answer"></strong>. Here's how everyone voted:</p>
+      <div id="chart" class="chart"></div>
+      <p id="results-total" class="muted"></p>
+      <button type="button" id="next-btn" class="primary next">Next corner ▸</button>
+    </section>
+
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </main>
+
+  <footer>
+    <span id="counter">0 corners mapped</span>
+    <span class="dot">·</span>
+    <a href="#" id="export-link">Export my data (CSV)</a>
+    <div class="footer-link"><a href="map.html">See the crowd map ▸</a></div>
+  </footer>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="config.js"></script>
+  <script src="intersections.js"></script>
+  <script src="neighborhoods.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
