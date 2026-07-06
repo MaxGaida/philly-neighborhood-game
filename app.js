@@ -29,6 +29,9 @@
   var current = null;
   var map, marker;
   var DEFAULT_ZOOM = 13.5;
+  // Touch devices (coarse pointer) get no auto-focus, so the keyboard doesn't
+  // cover the map on load; desktop keeps auto-focus for fast typing.
+  var CAN_AUTOFOCUS = !(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
 
   var el = {
     label:    document.getElementById("corner-label"),
@@ -131,7 +134,9 @@
     el.input.value = "";
     hideSuggestions();
     el.status.textContent = "";
-    el.input.focus();
+    // On touch devices, don't auto-focus: focusing pops the on-screen keyboard
+    // and hides the map. Let the player see the corner and tap the box when ready.
+    if (CAN_AUTOFOCUS) { el.input.focus(); }
   }
 
   // ---- autocomplete ---------------------------------------------------------
