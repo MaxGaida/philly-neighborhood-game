@@ -28,7 +28,7 @@
   var neighborhoods = window.NEIGHBORHOODS || [];
   var current = null;
   var map, marker;
-  var DEFAULT_ZOOM = 14.5;
+  var DEFAULT_ZOOM = 13.5;
 
   var el = {
     label:    document.getElementById("corner-label"),
