@@ -5,5 +5,5 @@
 // exported as CSV with the "Export my data" link.
 // ---------------------------------------------------------------------------
 window.APP_CONFIG = {
-  endpoint: ""   // e.g. "https://script.google.com/macros/s/AKfy.../exec"
+  endpoint: "https://script.google.com/macros/s/AKfycbysiubwbj8NiA6nwfTkHuxBSvqAE_xBkPyUvpQW83JaPC0lhu01D6QVmT1_sN1NUr35/exec"
 };

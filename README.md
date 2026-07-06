@@ -47,12 +47,22 @@ This is what lets answers from *other people* land in one place.
 1. Create a new Google Sheet (sheets.new).
 2. **Extensions ▸ Apps Script**. Delete the sample code, paste in the contents
    of [`apps_script/Code.gs`](apps_script/Code.gs), and **Save**.
-3. **Deploy ▸ New deployment**. Click the gear ▸ **Web app**. Set:
+3. **(Recommended — least privilege)** ⚙️ **Project Settings** ▸ enable
+   *"Show `appsscript.json` manifest file in editor"*, then open `appsscript.json`
+   and add the `oauthScopes` from [`apps_script/appsscript.json`](apps_script/appsscript.json):
+   ```json
+   "oauthScopes": ["https://www.googleapis.com/auth/spreadsheets.currentonly"]
+   ```
+   This limits the script to **only this spreadsheet** instead of all of your
+   Sheets. Save.
+4. **Deploy ▸ New deployment**. Click the gear ▸ **Web app**. Set:
    - **Execute as:** Me
    - **Who has access:** Anyone
-4. **Deploy**, approve the permission prompt, and copy the **Web app URL**
+5. **Deploy**, then authorize. The "Google hasn't verified this app" screen is
+   normal for your own script — **Advanced ▸ Go to … (unsafe)**. With the scope
+   above, it will ask only for the one spreadsheet. Copy the **Web app URL**
    (ends in `/exec`).
-5. Paste that URL into [`config.js`](config.js):
+6. Paste that URL into [`config.js`](config.js):
    ```js
    window.APP_CONFIG = { endpoint: "https://script.google.com/macros/s/AKfy.../exec" };
    ```
