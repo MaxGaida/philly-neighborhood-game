@@ -60,6 +60,8 @@
     progress:      document.getElementById("progress"),
     progressFill:  document.getElementById("progress-fill"),
     progressLabel: document.getElementById("progress-label"),
+    roundPips:     document.getElementById("round-pips"),
+    roundCount:    document.getElementById("round-count"),
     roundSummary:  document.getElementById("round-summary"),
     rsRecap:       document.getElementById("rs-recap"),
     rsHeadline:    document.getElementById("rs-headline"),
@@ -75,6 +77,7 @@
 
   initMap();
   updateCounter();
+  renderRoundProgress();
   nextCorner();
   loadAggregate();
 
@@ -229,6 +232,7 @@
   el.nextRound.addEventListener("click", function () {
     el.roundSummary.hidden = true;
     roundCount = 0; roundAnswers = []; roundComplete = false;
+    renderRoundProgress();
     nextCorner();
   });
 
@@ -251,6 +255,7 @@
     // round + collective-progress tracking
     roundAnswers.push({ answer: answer, hood: current.hood || "" });
     roundCount++;
+    renderRoundProgress();
     if (coveredSet) { coveredSet.add(current.name); renderProgress(); }
 
     showResults(current, answer);
@@ -345,6 +350,22 @@
       seenSet().forEach(function (nm) { coveredSet.add(nm); });  // include this session
       renderProgress();
     });
+  }
+
+  // Per-round pips + "X / 10 this round" so players see they're building toward
+  // the round summary (otherwise the round is invisible).
+  function renderRoundProgress() {
+    if (!el.roundPips.childNodes.length) {
+      for (var k = 0; k < ROUND_SIZE; k++) {
+        var pip = document.createElement("span");
+        pip.className = "pip";
+        el.roundPips.appendChild(pip);
+      }
+    }
+    for (var j = 0; j < ROUND_SIZE; j++) {
+      el.roundPips.childNodes[j].className = "pip" + (j < roundCount ? " on" : "");
+    }
+    el.roundCount.textContent = roundCount + " / " + ROUND_SIZE + " this round";
   }
 
   function renderProgress() {

@@ -209,6 +209,26 @@ footer a { color: var(--muted); }
   margin-top: 5px;
 }
 
+/* ---- per-round progress (X / 10) ---- */
+.round-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  min-height: 8px;
+}
+.round-pips { display: inline-flex; gap: 4px; }
+.pip {
+  width: 16px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  transition: background .2s ease;
+}
+.pip.on { background: var(--accent); }
+.round-count { color: var(--muted); font-size: .82rem; }
+
 /* ---- round summary ---- */
 .round-summary { text-align: center; }
 .rs-recap { color: var(--muted); margin: 0 0 6px; font-size: .92rem; }
