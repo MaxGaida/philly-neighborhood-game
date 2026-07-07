@@ -4,10 +4,13 @@
   the OpenDataPhilly neighborhoods polygons. The game then samples corners
   weighted toward neighborhood boundaries (contested areas) instead of uniformly.
 
-  Weight model (moderate bias):   w = 0.15 + exp(-edge_m / 250)
-    - a corner right on a border  (edge_m ~ 20)  -> ~1.07
-    - deep in a big neighborhood  (edge_m ~ 900) -> ~0.16
-  So boundaries come up ~6-7x more often than interiors, but nothing is excluded.
+  Weight model:   w = (0.15 + exp(-edge_m / 250)) * geo(lat, lng)
+    - boundary term: a corner on a border (~1.07) comes up ~6-7x more than a
+      deep interior one (~0.16).
+    - geo term (see constants below): favors the core peninsula spine (South
+      Philly -> North Philly up to ~Allegheny Ave) at full strength, West Philly
+      a bit less, and fades the far Northeast / Chestnut Hill / NW with latitude
+      so players spend more time on recognizable turf (nothing fully excluded).
 
   Usage:  powershell -ExecutionPolicy Bypass -File tools\weight_intersections.ps1
 #>
@@ -18,6 +21,24 @@ Add-Type -AssemblyName System.Web.Extensions
 $root     = Split-Path $PSScriptRoot -Parent
 $geoPath  = Join-Path $PSScriptRoot 'philadelphia-neighborhoods.geojson'
 $intPath  = Join-Path $root 'intersections.json'
+
+# ---- geographic emphasis (tunable) ----------------------------------------
+# Multiplier applied on top of the boundary weight. Favors the core spine, gives
+# West Philly a bit less, and fades everything north of Allegheny with latitude.
+$ALLEGHENY_LAT = 40.00    # full weight from South Philly up to here (~Allegheny Ave)
+$LAT_SCALE     = 0.055    # fade rate north of Allegheny (bigger = gentler fade)
+$WEST_LNG      = -75.19   # west of ~here (across the Schuylkill) = West/SW Philly
+$WEST_FACTOR   = 0.7      # West Philly multiplier (favored, but below the spine)
+$GEO_FLOOR     = 0.12     # floor so outside-the-focus corners still appear sometimes
+
+function Geo-Mult([double]$lat, [double]$lng) {
+    if ($lat -le $ALLEGHENY_LAT) { $latF = 1.0 }
+    else { $latF = [math]::Exp(-($lat - $ALLEGHENY_LAT) / $LAT_SCALE) }
+    if ($lng -lt $WEST_LNG) { $westF = $WEST_FACTOR } else { $westF = 1.0 }
+    $m = $latF * $westF
+    if ($m -lt $GEO_FLOOR) { $m = $GEO_FLOOR }
+    return $m
+}
 
 $js = New-Object System.Web.Script.Serialization.JavaScriptSerializer
 $js.MaxJsonLength = [int]::MaxValue
@@ -131,7 +152,8 @@ foreach ($d in $ints) {
     # polygon. Removes New Jersey, the rivers, and corrupt-coordinate OSM nodes.
     if (-not $container) { $i++; continue }
     $edge = Edge-Metres $px $py $container
-    $w = [math]::Round(0.15 + [math]::Exp(-$edge / 250.0), 4)
+    $bw = 0.15 + [math]::Exp(-$edge / 250.0)          # boundary term
+    $w = [math]::Round($bw * (Geo-Mult $py $px), 4)   # * geographic emphasis
     [void]$out.Add([pscustomobject]@{
         name = [string]$d['name']; lat = [double]$d['lat']; lng = [double]$d['lng']
         hood = $hood; edge_m = [math]::Round($edge, 0); weight = $w
