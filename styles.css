@@ -183,6 +183,45 @@ footer a { color: var(--muted); }
   .corner-label { font-size: 1.3rem; }
 }
 
+/* ---- collective progress bar ---- */
+.progress {
+  max-width: 560px;
+  margin: 2px auto 0;
+  padding: 0 16px;
+}
+.progress-track {
+  height: 8px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width .5s ease;
+}
+.progress-label {
+  text-align: center;
+  color: var(--muted);
+  font-size: .8rem;
+  margin-top: 5px;
+}
+
+/* ---- round summary ---- */
+.round-summary { text-align: center; }
+.rs-recap { color: var(--muted); margin: 0 0 6px; font-size: .92rem; }
+.rs-headline { margin: 4px 0 8px; font-size: 1.35rem; color: var(--accent); }
+.rs-stat { margin: 0 0 16px; color: var(--ink); font-size: .98rem; }
+.rs-link {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
 /* ---- footer link to the map ---- */
 .footer-link { display: inline-block; margin-top: 10px; }
 .footer-link a { color: var(--accent); font-weight: 600; text-decoration: none; }

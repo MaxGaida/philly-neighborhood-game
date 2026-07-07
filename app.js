@@ -33,6 +33,14 @@
   // cover the map on load; desktop keeps auto-focus for fast typing.
   var CAN_AUTOFOCUS = !(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
 
+  // ---- rounds + collective progress ----
+  var ROUND_SIZE = 10;
+  var roundCount = 0;         // guesses in the current round
+  var roundAnswers = [];      // {answer, hood} for this round (to feature a hood)
+  var roundComplete = false;
+  var aggregate = null;       // { cornerName: {t, c:{hood:n}} } from ?mode=all
+  var coveredSet = null;      // distinct corners with >=1 vote (collective)
+
   var el = {
     label:    document.getElementById("corner-label"),
     input:    document.getElementById("answer"),
@@ -48,7 +56,16 @@
     yourAns:  document.getElementById("your-answer"),
     chart:    document.getElementById("chart"),
     total:    document.getElementById("results-total"),
-    next:     document.getElementById("next-btn")
+    next:     document.getElementById("next-btn"),
+    progress:      document.getElementById("progress"),
+    progressFill:  document.getElementById("progress-fill"),
+    progressLabel: document.getElementById("progress-label"),
+    roundSummary:  document.getElementById("round-summary"),
+    rsRecap:       document.getElementById("rs-recap"),
+    rsHeadline:    document.getElementById("rs-headline"),
+    rsStat:        document.getElementById("rs-stat"),
+    rsLink:        document.getElementById("rs-map-link"),
+    nextRound:     document.getElementById("next-round-btn")
   };
 
   if (!intersections.length) {
@@ -59,6 +76,7 @@
   initMap();
   updateCounter();
   nextCorner();
+  loadAggregate();
 
   // ---- map ------------------------------------------------------------------
   function initMap() {
@@ -205,7 +223,14 @@
   });
   el.dunno.addEventListener("click", function () { record("(not sure)"); });
   el.skip.addEventListener("click", function () { nextCorner(); });
-  el.next.addEventListener("click", function () { nextCorner(); });
+  el.next.addEventListener("click", function () {
+    if (roundComplete) { showRoundSummary(); } else { nextCorner(); }
+  });
+  el.nextRound.addEventListener("click", function () {
+    el.roundSummary.hidden = true;
+    roundCount = 0; roundAnswers = []; roundComplete = false;
+    nextCorner();
+  });
 
   function record(answer) {
     if (!current) { return; }
@@ -222,6 +247,12 @@
     markSeen(current.name);
     bumpCounter();
     send(row);
+
+    // round + collective-progress tracking
+    roundAnswers.push({ answer: answer, hood: current.hood || "" });
+    roundCount++;
+    if (coveredSet) { coveredSet.add(current.name); renderProgress(); }
+
     showResults(current, answer);
   }
 
@@ -239,13 +270,114 @@
         if (data && data.counts) { renderChart(data.counts, myAnswer, true); }
       });
     }
+
+    // At the end of a round, the "next" button leads to the round summary.
+    roundComplete = roundCount >= ROUND_SIZE;
+    el.next.textContent = roundComplete ? "See round summary ▸" : "Next corner ▸";
   }
 
   function hideResults() {
     el.results.hidden = true;
+    if (el.roundSummary) { el.roundSummary.hidden = true; }
     el.form.hidden = false;
     el.chart.innerHTML = "";
     el.total.textContent = "";
+  }
+
+  // ---- round summary + collective progress ---------------------------------
+  function showRoundSummary() {
+    el.results.hidden = true;
+    el.form.hidden = true;
+    el.roundSummary.hidden = false;
+    el.status.textContent = "";
+
+    el.rsRecap.textContent = "Round complete — you mapped " + roundCount + " corners.";
+    var hood = featuredHood();
+    if (hood) {
+      el.rsHeadline.textContent = "You're helping draw " + hood + ".";
+      el.rsStat.textContent = aggregateStatFor(hood);
+      el.rsLink.href = "map.html?hood=" + encodeURIComponent(hood);
+      el.rsLink.textContent = "See " + hood + " on the full map ▸";
+    } else {
+      el.rsHeadline.textContent = "You're helping map Philadelphia.";
+      el.rsStat.textContent = "";
+      el.rsLink.href = "map.html";
+      el.rsLink.textContent = "See the crowd map ▸";
+    }
+  }
+
+  // The neighborhood the player named most this round (fallback: the official
+  // neighborhood of the corners they saw).
+  function featuredHood() {
+    var byAnswer = mode(roundAnswers.map(function (r) { return r.answer; })
+                       .filter(function (a) { return a && a !== "(not sure)"; }));
+    if (byAnswer) { return byAnswer; }
+    return mode(roundAnswers.map(function (r) { return r.hood; })
+                .filter(function (h) { return !!h; }));
+  }
+  function mode(arr) {
+    var counts = {}, best = null, bestN = 0;
+    arr.forEach(function (v) {
+      counts[v] = (counts[v] || 0) + 1;
+      if (counts[v] > bestN) { bestN = counts[v]; best = v; }
+    });
+    return best;
+  }
+
+  // How much crowd data already exists for a neighborhood (for the summary line).
+  function aggregateStatFor(hood) {
+    if (!aggregate) { return ""; }
+    var corners = 0;
+    Object.keys(aggregate).forEach(function (nm) {
+      var c = aggregate[nm].c || {};
+      if (c[hood]) { corners++; }
+    });
+    if (!corners) { return "You're one of the first to put it on the map."; }
+    return "The crowd has tagged " + corners + (corners === 1 ? " corner" : " corners") +
+           " as " + hood + " so far.";
+  }
+
+  function loadAggregate() {
+    if (!ENDPOINT) { return; }
+    fetchAll(function (corners) {
+      aggregate = corners || {};
+      coveredSet = new Set(Object.keys(aggregate));
+      seenSet().forEach(function (nm) { coveredSet.add(nm); });  // include this session
+      renderProgress();
+    });
+  }
+
+  function renderProgress() {
+    if (!coveredSet) { return; }
+    var n = coveredSet.size;
+    var goal = niceNext(n);
+    el.progressFill.style.width = Math.min(100, Math.round((n / goal) * 100)) + "%";
+    el.progressLabel.textContent =
+      n.toLocaleString() + " corners mapped by the crowd · next goal " + goal.toLocaleString();
+    el.progress.hidden = false;
+  }
+
+  // Rolling milestone so the bar always looks reachable (not a sliver of 20k).
+  function niceNext(n) {
+    var steps = [50, 100, 250, 500, 1000, 2000, 3500, 5000, 7500, 10000, 15000, intersections.length];
+    for (var i = 0; i < steps.length; i++) { if (n < steps[i]) { return steps[i]; } }
+    return intersections.length;
+  }
+
+  // JSONP GET of the full aggregate (?mode=all).
+  function fetchAll(cb) {
+    var fn = "__png_all_" + uid();
+    var timer = setTimeout(function () { cleanup(); }, 12000);
+    window[fn] = function (data) { cleanup(); cb(data && data.corners); };
+    function cleanup() {
+      clearTimeout(timer);
+      try { delete window[fn]; } catch (e) { window[fn] = undefined; }
+      if (s && s.parentNode) { s.parentNode.removeChild(s); }
+    }
+    var s = document.createElement("script");
+    s.src = ENDPOINT + "?mode=all&callback=" + fn + "&_=" + Date.now();
+    s.onerror = function () { cleanup(); };
+    document.body.appendChild(s);
   }
 
   // Tally this corner's answers from the local log (so the graph works offline).

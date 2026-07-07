@@ -127,10 +127,14 @@
       var ll = coords[name];
       if (!ll) { return; }     // corner not in our coordinate set
       var c = agg[name].c || {};
-      var total = agg[name].t || 0;
+      // "(not sure)" isn't a neighborhood — drop it from the map's tallies.
+      var counts = Object.keys(c)
+        .filter(function (k) { return k && k !== "(not sure)"; })
+        .map(function (k) { return { hood: k, n: c[k] }; })
+        .sort(function (a, b) { return b.n - a.n; });
+      if (!counts.length) { return; }   // corner had only "(not sure)" votes
+      var total = counts.reduce(function (s, x) { return s + x.n; }, 0);
       voteTotal += total;
-      var counts = Object.keys(c).map(function (k) { return { hood: k, n: c[k] }; })
-                         .sort(function (a, b) { return b.n - a.n; });
       counts.forEach(function (x) { hoodTotals[x.hood] = (hoodTotals[x.hood] || 0) + x.n; });
       var top = counts[0];
       features.push({
@@ -151,6 +155,17 @@
     updateStats(features.length, voteTotal);
     el.empty.hidden = features.length > 0;
     render();
+    applyHoodParam();   // deep link from the game's round summary (?hood=...)
+  }
+
+  // ?hood=Fishtown -> open in Explore mode focused on that neighborhood.
+  function applyHoodParam() {
+    var m = /[?&]hood=([^&]+)/.exec(location.search);
+    if (!m) { return; }
+    var want = decodeURIComponent(m[1].replace(/\+/g, " ")).toLowerCase();
+    var opts = Array.prototype.map.call(el.hood.options, function (o) { return o.value; });
+    var match = opts.filter(function (o) { return o.toLowerCase() === want; })[0];
+    if (match) { selHood = match; el.hood.value = match; setMode("explore"); }
   }
 
   // ---- rendering ------------------------------------------------------------
