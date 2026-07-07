@@ -127,19 +127,14 @@ foreach ($d in $ints) {
     foreach ($feat in $features) {
         if (In-Feature $px $py $feat) { $hood = $feat.name; $container = $feat; break }
     }
-    if ($container) {
-        $edge = Edge-Metres $px $py $container
-        $w = [math]::Round(0.15 + [math]::Exp(-$edge / 250.0), 4)
-        $edgeOut = [math]::Round($edge, 0)
-    } else {
-        # Not inside any official neighborhood (river/park/industrial/airport):
-        # genuinely ambiguous, so show it rarely.
-        $w = 0.05
-        $edgeOut = -1
-    }
+    # Clip to the city: drop any corner not inside a Philadelphia neighborhood
+    # polygon. Removes New Jersey, the rivers, and corrupt-coordinate OSM nodes.
+    if (-not $container) { $i++; continue }
+    $edge = Edge-Metres $px $py $container
+    $w = [math]::Round(0.15 + [math]::Exp(-$edge / 250.0), 4)
     [void]$out.Add([pscustomobject]@{
         name = [string]$d['name']; lat = [double]$d['lat']; lng = [double]$d['lng']
-        hood = $hood; edge_m = $edgeOut; weight = $w
+        hood = $hood; edge_m = [math]::Round($edge, 0); weight = $w
     })
     $i++
     if ($i % 1500 -eq 0) { Write-Host ("  {0}/{1}" -f $i, $ints.Count) }

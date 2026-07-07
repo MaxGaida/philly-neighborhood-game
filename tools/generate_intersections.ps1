@@ -1,36 +1,53 @@
 <#
   Generates intersections.json from OpenStreetMap via the Overpass API.
 
-  Strategy: fetch every named street (way) in the bounding box, then treat any
-  OSM node that is shared by two or more DIFFERENTLY-NAMED streets as an
+  Strategy: fetch every named street (way) inside the Philadelphia city boundary,
+  then treat any OSM node shared by two or more DIFFERENTLY-NAMED streets as an
   intersection. The label is the two street "cores" (e.g. "North 2nd Street" +
   "Arch Street" -> "2nd & Arch").
 
+  Using the city administrative boundary (not a lat/lng box) means it covers the
+  WHOLE city (incl. Chestnut Hill and the Northeast) and excludes New Jersey /
+  the suburbs automatically.
+
   Usage:  powershell -ExecutionPolicy Bypass -File tools\generate_intersections.ps1
-  Edit $bbox below to change coverage (south,west,north,east).
 #>
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Web.Extensions
 
-# south,west,north,east  -- default covers Center City + South Philly, Fairmount,
-# Northern Liberties/Fishtown, and near University City.
-$bbox = '39.905,-75.25,39.985,-75.12'
-
 $outPath = Join-Path (Split-Path $PSScriptRoot -Parent) 'intersections.json'
 
+# Streets within the Philadelphia city boundary (admin_level 8).
 $ql = @"
-[out:json][timeout:180];
-way["highway"~"^(primary|secondary|tertiary|residential|unclassified|living_street)$"]["name"]($bbox);
+[out:json][timeout:300];
+area["boundary"="administrative"]["admin_level"="8"]["name"="Philadelphia"]->.a;
+way["highway"~"^(primary|secondary|tertiary|residential|unclassified|living_street)$"]["name"](area.a);
 (._;>;);
 out qt;
 "@
 
-Write-Host "Querying Overpass (this can take 30-90s)..."
-$resp = Invoke-WebRequest -Uri 'https://overpass-api.de/api/interpreter' `
-    -Method Post -Body @{ data = $ql } -UseBasicParsing -TimeoutSec 180 `
-    -Headers @{ 'User-Agent' = 'philly-nbhd-game/1.0 (mg.gaida@gmail.com)'; 'Accept' = 'application/json' }
-$raw = $resp.Content
+# The main overpass-api.de host is often overloaded for a whole-city query;
+# try mirrors in order.
+$hosts = @(
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.osm.ch/api/interpreter'
+)
+$raw = $null
+foreach ($h in $hosts) {
+  Write-Host "Querying $h (whole-city query, can take 1-3 min)..."
+  try {
+    $resp = Invoke-WebRequest -Uri $h -Method Post -Body @{ data = $ql } `
+        -UseBasicParsing -TimeoutSec 300 `
+        -Headers @{ 'User-Agent' = 'philly-nbhd-game/1.0 (mg.gaida@gmail.com)'; 'Accept' = 'application/json' }
+    if ($resp.Content -like '*"elements"*') { $raw = $resp.Content; break }
+    Write-Host "  (no data / busy, trying next mirror)"
+  } catch {
+    Write-Host ("  ({0}, trying next mirror)" -f $_.Exception.Message)
+  }
+}
+if (-not $raw) { throw "All Overpass mirrors failed or were busy. Try again shortly." }
 
 # ConvertFrom-Json in PS 5.1 chokes on large payloads; use the serializer directly.
 $js = New-Object System.Web.Script.Serialization.JavaScriptSerializer
