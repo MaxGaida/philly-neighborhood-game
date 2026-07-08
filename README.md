@@ -20,7 +20,7 @@ tools/generate_intersections.ps1   regenerate/expand intersections from OSM
 Answers are **always** saved locally in the browser (and exportable as CSV),
 so the game works even before you wire up the Google Sheet.
 
-The game is played in **rounds of 10**: after each round a summary highlights a
+The game is played in **rounds of 5**: after each round a summary highlights a
 neighborhood you contributed to ("You're helping draw Fishtown") and links to it
 on the crowd map. A **collective progress bar** shows how many corners the crowd
 has mapped so far (read from `?mode=all`).

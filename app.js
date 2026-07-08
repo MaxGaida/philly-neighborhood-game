@@ -34,7 +34,7 @@
   var CAN_AUTOFOCUS = !(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
 
   // ---- rounds + collective progress ----
-  var ROUND_SIZE = 10;
+  var ROUND_SIZE = 5;
   var roundCount = 0;         // guesses in the current round
   var roundAnswers = [];      // {answer, hood} for this round (to feature a hood)
   var roundComplete = false;
